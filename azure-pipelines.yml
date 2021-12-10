@@ -91,37 +91,3 @@ jobs:
         displayName: Test
         env:
           CROSS_DEBUG: 1
-      - bash: cargo publish
-        displayName: Publish on crates.io
-        env:
-          CARGO_REGISTRY_TOKEN: $(CARGO_REGISTRY_TOKEN)
-        condition: and(startsWith(variables['TAG'], 'v'), eq(variables['CRATES_IO_PUBLISH'], '1'))
-      - bash: ci/build_release.sh
-        displayName: Build Release
-        condition: eq(variables['DEPLOY'], '1')
-      - task: ArchiveFiles@2
-        inputs:
-          includeRootFolder: false
-          archiveType: tar
-          tarCompression: gz
-          archiveFile: $(Build.ArtifactStagingDirectory)/cross-$(TAG)-$(TARGET).tar.gz
-          verbose: true
-        condition: eq(variables['DEPLOY'], '1')
-      - task: GithubRelease@0
-        displayName: Create GitHub Release
-        inputs:
-          githubConnection: github
-          assets: $(Build.ArtifactStagingDirectory)/cross-$(TAG)-$(TARGET).tar.gz
-          assetUploadMode: replace
-          action: edit
-          tag: $(TAG)
-        condition: and(startsWith(variables['TAG'], 'v'), eq(variables['DEPLOY'], '1'))
-      - task: Docker@2
-        displayName: Log into Docker Hub
-        inputs:
-          containerRegistry: docker
-          command: login
-        condition: and(or(eq(variables['BRANCH'], 'master'), startsWith(variables['TAG'], 'v')), eq(variables['OS'], 'linux'))
-      - bash: ci/docker_push.sh
-        displayName: Push Image to Docker Hub
-        condition: and(or(eq(variables['BRANCH'], 'master'), startsWith(variables['TAG'], 'v')), eq(variables['OS'], 'linux'))
